@@ -1,0 +1,21 @@
+create.res.oos.without = function(dat, horiz = 12){
+	n = NROW(dat) 
+	fc = matrix(nrow = n , ncol = 3) # recursive estimation of factors
+	fcfar = matrix(nrow = n , ncol = 3) ; lml = list() # forecasted factors for the AR
+	ypred = matrix(nrow = n , ncol = nyields)
+	load2 = (1 - exp(-tau*a))/(tau*a) ; load3 = (1 - exp(-tau*a))/(tau*a) - exp(-tau*a)
+	for (i in (1):n){
+		lm1 = lm(dat[i,]~load2+load3)  # Estimation of the factors at time t.
+		fc[i,] = lm1$coef
+	}   
+	for (i in 1:(n-initobs-horiz)){
+		for (h in 1:3){
+			lml[[h]] = lm(fc[(1+horiz):(i+initobs),h]~fc[1:(i-horiz +initobs),h])# get the coefficients only when we can
+			fcfar[(initobs+i+horiz),h] = t(lml[[h]]$coef)%*%c(1,fc[(i+initobs),h]) 
+		}
+		ypred[(i+initobs+horiz),] = fcfar[(i+initobs+horiz),]%*%t(cbind(rep(1,nyields),load2, load3))
+	}
+	resmat = dat - ypred
+	list(ypred = ypred, resmat = resmat,fc=fc,fcfar=fcfar)
+}
+
